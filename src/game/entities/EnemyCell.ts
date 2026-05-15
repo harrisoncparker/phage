@@ -37,8 +37,9 @@ export class EnemyCell {
   private vy = 0;
   private wanderTimer = 0;
   private fireCooldown: number;
-  private _inRange = false;
+  private _inRange    = false;
   private _wasInRange = false;
+  private _activated  = false;
   private _hitFlashTimer = 0;
 
   // Fade-in on spawn
@@ -62,7 +63,7 @@ export class EnemyCell {
 
   // 0 = just fired / not in range, 1 = about to fire
   get chargeProgress(): number {
-    if (this.type !== 'ranged' || !this._inRange) return 0;
+    if (this.type !== 'ranged' || !this._activated) return 0;
     return 1 - this.fireCooldown / ENEMY.RANGED.FIRE_COOLDOWN;
   }
 
@@ -102,19 +103,18 @@ export class EnemyCell {
     const dist = Math.hypot(dx, dy);
 
     this._inRange = dist < ENEMY.AWARE.DETECTION_RADIUS;
-    if (this._inRange) {
-      if (!this._wasInRange) this.alertPulse = 1;
-      this._wasInRange = true;
+    if (this._inRange && !this._activated) {
+      this._activated = true;
+      this.alertPulse = 1;
+    }
+
+    if (this._activated) {
       const len = dist || 1;
-      // Store unit vector so wander has a clean direction if transition occurs next frame
       this.vx = dx / len;
       this.vy = dy / len;
       this.x += this.vx * ENEMY.AWARE.SPEED * dt;
       this.y += this.vy * ENEMY.AWARE.SPEED * dt;
     } else {
-      // Reset velocity to a fresh unit direction on the frame we exit detection range
-      if (this._wasInRange) this.pickDir();
-      this._wasInRange = false;
       this.wander(dt, ENEMY.AWARE.SPEED * 0.4);
     }
 
@@ -133,12 +133,8 @@ export class EnemyCell {
     let event: EnemyEvent = null;
 
     if (dist < ENEMY.RANGED.DETECTION_RADIUS) {
-      this._inRange = true;
-      this.fireCooldown -= delta;
-      if (this.fireCooldown <= 0) {
-        this.fireCooldown = ENEMY.RANGED.FIRE_COOLDOWN;
-        event = { type: 'fire', toX: px, toY: py };
-      }
+      this._inRange   = true;
+      this._activated = true;
       const len = dist || 1;
       const m = this.radius + EDGE_MARGIN;
       const rx = -dx / len, ry = -dy / len;
@@ -148,7 +144,21 @@ export class EnemyCell {
         this.y += ry * ENEMY.RANGED.RETREAT_SPEED * dt;
     } else {
       this._inRange = false;
-      this.wander(dt, ENEMY.RANGED.SPEED * 0.3);
+      if (this._activated) {
+        const len = dist || 1;
+        this.x += (dx / len) * ENEMY.RANGED.SPEED * 0.5 * dt;
+        this.y += (dy / len) * ENEMY.RANGED.SPEED * 0.5 * dt;
+      } else {
+        this.wander(dt, ENEMY.RANGED.SPEED * 0.3);
+      }
+    }
+
+    if (this._activated) {
+      this.fireCooldown -= delta;
+      if (this.fireCooldown <= 0) {
+        this.fireCooldown = ENEMY.RANGED.FIRE_COOLDOWN;
+        event = { type: 'fire', toX: px, toY: py };
+      }
     }
     return event;
   }
