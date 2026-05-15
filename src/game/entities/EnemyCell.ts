@@ -68,6 +68,14 @@ export class EnemyCell {
   }
 
   get inDetectionRange(): boolean { return this._inRange; }
+  get isActivated(): boolean      { return this._activated; }
+
+  activate(): void {
+    if (this._activated) return;
+    this._activated = true;
+    this.alertPulse = 1;
+    SFX.enemyAlert();
+  }
 
   get hitFlashAlpha(): number { return this._hitFlashTimer / 80; }
   get hpFraction(): number    { return Math.max(0, this.hp / CFG[this.type].HP); }
@@ -92,9 +100,12 @@ export class EnemyCell {
     }
 
     if (!this.active) return event;
-    const m = this.radius + EDGE_MARGIN;
-    this.x = Math.max(m, Math.min(ARENA.WIDTH  - m, this.x));
-    this.y = Math.max(m, Math.min(ARENA.HEIGHT - m, this.y));
+    // Activated aware cells escape through walls — don't clamp them
+    if (!(this.type === 'aware' && this._activated)) {
+      const m = this.radius + EDGE_MARGIN;
+      this.x = Math.max(m, Math.min(ARENA.WIDTH  - m, this.x));
+      this.y = Math.max(m, Math.min(ARENA.HEIGHT - m, this.y));
+    }
     return event;
   }
 
@@ -103,11 +114,7 @@ export class EnemyCell {
     const dist = Math.hypot(dx, dy);
 
     this._inRange = dist < ENEMY.AWARE.DETECTION_RADIUS;
-    if (this._inRange && !this._activated) {
-      this._activated = true;
-      this.alertPulse = 1;
-      SFX.enemyAlert();
-    }
+    if (this._inRange) this.activate();
 
     if (this._activated) {
       const len = dist || 1;
@@ -136,32 +143,29 @@ export class EnemyCell {
     if (dist < ENEMY.RANGED.DETECTION_RADIUS) {
       this._inRange   = true;
       this._activated = true;
-      const len = dist || 1;
-      const m = this.radius + EDGE_MARGIN;
-      const rx = -dx / len, ry = -dy / len;
-      if (!(this.x < m && rx < 0) && !(this.x > ARENA.WIDTH  - m && rx > 0))
-        this.x += rx * ENEMY.RANGED.RETREAT_SPEED * dt;
-      if (!(this.y < m && ry < 0) && !(this.y > ARENA.HEIGHT - m && ry > 0))
-        this.y += ry * ENEMY.RANGED.RETREAT_SPEED * dt;
     } else {
       this._inRange = false;
-      if (this._activated) {
-        const len = dist || 1;
-        this.x += (dx / len) * ENEMY.RANGED.SPEED * 0.5 * dt;
-        this.y += (dy / len) * ENEMY.RANGED.SPEED * 0.5 * dt;
-      } else {
-        this.wander(dt, ENEMY.RANGED.SPEED * 0.3);
-      }
     }
 
     if (this._activated) {
+      // Advance toward player, hold at half detection range
+      const minDist = ENEMY.RANGED.DETECTION_RADIUS * 0.5;
+      if (dist > minDist) {
+        const len = dist || 1;
+        this.x += (dx / len) * ENEMY.RANGED.SPEED * dt;
+        this.y += (dy / len) * ENEMY.RANGED.SPEED * dt;
+      }
+
       this.fireCooldown -= delta;
       if (this.fireCooldown <= 0) {
         this.fireCooldown = ENEMY.RANGED.FIRE_COOLDOWN;
         SFX.rangedFire();
         event = { type: 'fire', toX: px, toY: py };
       }
+    } else {
+      this.wander(dt, ENEMY.RANGED.SPEED * 0.3);
     }
+
     return event;
   }
 

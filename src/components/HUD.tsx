@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Dna } from 'lucide-react';
 import { CSS, ARENA } from '../constants';
 import { availablePoints } from '../state';
 import { GameLoop, type GameSnapshot } from '../game/GameLoop';
@@ -47,7 +48,7 @@ export function HUD({ gameLoop }: { gameLoop: GameLoop }) {
         alignItems: 'center',
         gap: 10
       }}>
-         {availablePoints() + snap.runScore} <span style={{ fontSize: 15, color: CSS.TEXT, opacity: 0.6, letterSpacing: 1 }}>NUTRIENTS</span>
+         {availablePoints() + snap.runScore} <Dna size={18} color={CSS.TEXT} opacity={0.6} /><span style={{ fontSize: 15, color: CSS.TEXT, opacity: 0.6, letterSpacing: 1 }}>NUTRIENTS</span>
       </div>
 
       {/* Timer — top center */}

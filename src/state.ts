@@ -3,7 +3,7 @@
 
 import { PLAYER_BASE } from './constants';
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 export interface PlayerStats {
   speed:          number;

@@ -1,4 +1,4 @@
-import { ARENA, RUN } from '../constants';
+import { ARENA, RUN, ENEMY } from '../constants';
 import { saveState, addPoints, persistSave } from '../state';
 import { Player, type AttackEvent } from './entities/Player';
 import { EnemyCell, type EnemyType } from './entities/EnemyCell';
@@ -127,6 +127,18 @@ export class GameLoop {
       if (evt?.type === 'fire') {
         this.projectiles.push(new Projectile(e.x, e.y, evt.toX, evt.toY, 'enemy', 1));
         this.spawnMuzzleParticles(e.x, e.y, evt.toX, evt.toY);
+      }
+    }
+
+    // Pack alerting — activated aware cells alert nearby aware cells
+    for (const e of this.enemies) {
+      if (e.type !== 'aware' || !e.isActivated) continue;
+      for (const other of this.enemies) {
+        if (other !== e && other.type === 'aware' && !other.isActivated) {
+          if (Math.hypot(other.x - e.x, other.y - e.y) < ENEMY.AWARE.PACK_ALERT_RADIUS) {
+            other.activate();
+          }
+        }
       }
     }
 

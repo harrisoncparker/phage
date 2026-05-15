@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Dna } from 'lucide-react';
 import { CSS, ARENA } from '../constants';
 import { gridPos } from './upgradeGrid';
 import { saveState, availablePoints, spendPoints, persistSave } from '../state';
@@ -156,7 +157,7 @@ function mkBurst(x: number, y: number): Burst {
 }
 
 export function UpgradeTree({ endInfo, onPlayAgain }: { endInfo: RunEndInfo; onPlayAgain: () => void }) {
-  const { rawScore, earned, reason } = endInfo;
+  const { earned, reason } = endInfo;
   const [, forceRender] = useState(0);
   const [tooltip,    setTooltip]    = useState('');
   const [bursts,     setBursts]     = useState<Burst[]>([]);
@@ -246,27 +247,43 @@ export function UpgradeTree({ endInfo, onPlayAgain }: { endInfo: RunEndInfo; onP
         .bp { position:absolute; width:7px; height:7px; border-radius:2px; background:${CSS.ACCENT}; animation:bp 0.55s ease-out forwards; pointer-events:none; }
       `}</style>
 
-      {/* Fixed: header */}
-      <div style={{ position:'relative', zIndex:10, pointerEvents:'none' }}>
-        <div style={{ textAlign:'center', paddingTop:20, fontSize:22, letterSpacing:3, opacity:0.65 }}>
-          UPGRADES
+      {/* Fixed HUD layer */}
+      <div style={{ position:'absolute', inset:0, zIndex:10, pointerEvents:'none', fontFamily:'monospace', color:CSS.TEXT }}>
+
+        {/* HP — top left, matches game HUD */}
+        <div style={{ position:'absolute', top:18, left:20, display:'flex', alignItems:'center', gap:7 }}>
+          <span style={{ fontSize:15, color:CSS.TEXT, opacity:0.6, letterSpacing:1 }}>HP</span>
+          {Array.from({ length: saveState.stats.maxHearts }, (_, i) => (
+            <div key={i} style={{ width:22, height:22, borderRadius:'50%', background:CSS.HEART }} />
+          ))}
         </div>
-        {reason === 'death' ? (
-          <div style={{ textAlign:'center', marginTop:6 }}>
-            <div style={{ fontSize:14, color:CSS.RANGED, fontWeight:'bold', letterSpacing:1 }}>YOU DIED</div>
-            <div style={{ fontSize:12, color:CSS.TEXT, opacity:0.55, marginTop:2 }}>
-              {rawScore} nutrients — 75% lost on death
+
+        {/* Nutrients — top right, matches game HUD */}
+        <div style={{ position:'absolute', top:20, right:24, fontSize:20, fontStyle:'italic', color:CSS.ACCENT, display:'flex', alignItems:'center', gap:10 }}>
+          {availablePoints()} <Dna size={18} color={CSS.TEXT} opacity={0.6} /><span style={{ fontSize:15, color:CSS.TEXT, opacity:0.6, letterSpacing:1 }}>NUTRIENTS</span>
+        </div>
+
+        {/* Title + run result — top center */}
+        <div style={{ textAlign:'center', paddingTop:18 }}>
+          <div style={{ fontSize:11, letterSpacing:4, opacity:0.35, marginBottom:6 }}>
+            UPGRADE YOUR CELL
+          </div>
+          {reason === 'death' ? (
+            <div style={{ fontSize:13, letterSpacing:0.5 }}>
+              <span style={{ color:CSS.RANGED }}>YOU DIED</span>
+              <span style={{ opacity:0.4, margin:'0 8px' }}>·</span>
+              <span style={{ color:CSS.ACCENT }}>+{earned} nutrients kept</span>
             </div>
-            <div style={{ fontSize:14, color:CSS.ACCENT, marginTop:3 }}>+{earned} kept</div>
-          </div>
-        ) : (
-          <div style={{ textAlign:'center', fontSize:13, color:CSS.ACCENT, marginTop:6 }}>
-            +{earned} nutrients this run
-          </div>
-        )}
-        <div style={{ textAlign:'center', fontSize:15, marginTop:5 }}>
-          <strong style={{ color:CSS.PLAYER }}>{availablePoints()}</strong>
-          <span style={{ opacity:0.45, marginLeft:6 }}>nutrients</span>
+          ) : (
+            <div style={{ fontSize:13, color:CSS.ACCENT, letterSpacing:0.5 }}>
+              RUN SURVIVED · +{earned} nutrients
+            </div>
+          )}
+        </div>
+
+        {/* Drag + click hint — bottom left */}
+        <div style={{ position:'absolute', bottom:14, left:14, fontSize:12, opacity:0.35 }}>
+          CLICK TO UNLOCK · DRAG TO EXPLORE
         </div>
       </div>
 
@@ -336,7 +353,12 @@ export function UpgradeTree({ endInfo, onPlayAgain }: { endInfo: RunEndInfo; onP
                   boxShadow:      isAvailable ? `0 0 0 3px ${CSS.ACCENT}60, 0 4px 16px ${CSS.ACCENT}30` : 'none',
                 }}
               >
-                {isUnlocked ? '✓' : (!isLocked ? node.cost : '')}
+                {isUnlocked ? '✓' : (!isLocked ? (
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+                    <span>{node.cost}</span>
+                    <Dna size={11} opacity={0.7} />
+                  </div>
+                ) : '')}
               </div>
               <div style={{
                 position:      'absolute',
