@@ -1,4 +1,4 @@
-# Cell Game
+# PHAGE
 
 A browser-based incremental predator cell game. Survive timed runs, earn nutrients, and spend them on a persistent upgrade tree between runs.
 
