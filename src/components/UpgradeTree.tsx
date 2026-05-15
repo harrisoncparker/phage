@@ -3,6 +3,7 @@ import { CSS, ARENA } from '../constants';
 import { gridPos } from './upgradeGrid';
 import { saveState, availablePoints, spendPoints, persistSave } from '../state';
 import type { RunEndInfo } from '../game/GameLoop';
+import { SFX } from '../game/Sound';
 
 interface TreeNode {
   id:          string;
@@ -171,6 +172,7 @@ export function UpgradeTree({ endInfo, onPlayAgain }: { endInfo: RunEndInfo; onP
     unlocked.add(node.id);
     node.apply();
     persistSave();
+    SFX.upgradeUnlock();
     const b = mkBurst(x, y);
     setBursts(prev => [...prev, b]);
     setTimeout(() => setBursts(prev => prev.filter(p => p.id !== b.id)), 600);

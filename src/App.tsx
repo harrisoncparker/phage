@@ -6,6 +6,8 @@ import { GameCanvas } from './components/GameCanvas';
 import { HUD } from './components/HUD';
 import { UpgradeTree } from './components/UpgradeTree';
 import { PauseModal } from './components/PauseModal';
+import { unlockAudio } from './game/Sound';
+import { startMusic, pauseMusic, resumeMusic } from './game/Music';
 
 type Phase = 'playing' | 'upgrading';
 
@@ -25,6 +27,7 @@ export function App() {
   const [showModal,      setShowModal]      = useState(() => saveState.runCount === 0);
   const [isFirstLaunch,  setIsFirstLaunch]  = useState(() => saveState.runCount === 0);
   const [scale,          setScale]          = useState(() => computeScale(PLAY_PADDING));
+  const [soundLocked,    setSoundLocked]    = useState(true);
 
   const handleRunEnd = useCallback((info: RunEndInfo) => {
     setEndInfo(info);
@@ -40,6 +43,7 @@ export function App() {
   const handleResume = useCallback(() => {
     setShowModal(false);
     setIsFirstLaunch(false);
+    resumeMusic();
   }, []);
 
   useEffect(() => {
@@ -52,6 +56,23 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [phase]);
 
+  // Pause on window/tab blur
+  useEffect(() => {
+    const pause = () => {
+      if (phase !== 'playing') return;
+      setShowModal(true);
+      pauseMusic();
+    };
+    const onVisibility = () => { if (document.hidden) pause(); };
+
+    window.addEventListener('blur', pause);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', pause);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [phase]);
+
   useEffect(() => {
     const padding = phase === 'playing' ? PLAY_PADDING : 0;
     setScale(computeScale(padding));
@@ -59,6 +80,17 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [phase]);
+
+  // Start backing track on first interaction — permanent for session
+  useEffect(() => {
+    const handleFirstClick = () => {
+      setSoundLocked(false);
+      unlockAudio().then(() => startMusic());
+      window.removeEventListener('mousedown', handleFirstClick);
+    };
+    window.addEventListener('mousedown', handleFirstClick);
+    return () => window.removeEventListener('mousedown', handleFirstClick);
+  }, []);
 
   const paused = phase === 'playing' && showModal;
 
@@ -86,6 +118,22 @@ export function App() {
 
       {paused && (
         <PauseModal isIntro={isFirstLaunch} onResume={handleResume} />
+      )}
+
+      {soundLocked && !paused && (
+        <div style={{
+          position:      'absolute',
+          bottom:        20,
+          left:          '50%',
+          transform:     'translateX(-50%)',
+          fontSize:      11,
+          letterSpacing: 2,
+          color:         CSS.TEXT,
+          opacity:       0.38,
+          pointerEvents: 'none',
+        }}>
+          CLICK FOR SOUND
+        </div>
       )}
     </div>
   );

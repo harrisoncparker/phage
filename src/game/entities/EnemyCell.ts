@@ -1,4 +1,5 @@
 import { COLORS, ENEMY, ARENA } from '../../constants';
+import { SFX } from '../Sound';
 
 export type EnemyType = 'oblivious' | 'aware' | 'ranged' | 'armoured';
 
@@ -38,7 +39,6 @@ export class EnemyCell {
   private wanderTimer = 0;
   private fireCooldown: number;
   private _inRange    = false;
-  private _wasInRange = false;
   private _activated  = false;
   private _hitFlashTimer = 0;
 
@@ -106,6 +106,7 @@ export class EnemyCell {
     if (this._inRange && !this._activated) {
       this._activated = true;
       this.alertPulse = 1;
+      SFX.enemyAlert();
     }
 
     if (this._activated) {
@@ -157,6 +158,7 @@ export class EnemyCell {
       this.fireCooldown -= delta;
       if (this.fireCooldown <= 0) {
         this.fireCooldown = ENEMY.RANGED.FIRE_COOLDOWN;
+        SFX.rangedFire();
         event = { type: 'fire', toX: px, toY: py };
       }
     }

@@ -3,24 +3,28 @@ import { ARENA, COLORS, ORBIT, TARGETING_RING_RADIUS } from '../constants';
 import type { GameLoop } from './GameLoop';
 
 export class Renderer {
-  private readonly app:        Application;
-  private readonly gfx:        Graphics;
-  private readonly textLayer:  Container;
+  private readonly app:            Application;
+  private readonly gfx:            Graphics;
+  private readonly countdownLayer: Container;
+  private readonly textLayer:      Container;
   private readonly activeTexts = new Map<number, Text>();
+  private countdownText: Text | null = null;
   private shakeTimer = 0;
   private timeMs     = 0;
 
   constructor(app: Application) {
-    this.app       = app;
-    this.gfx       = new Graphics();
-    this.textLayer = new Container();
-    app.stage.addChild(this.gfx, this.textLayer);
+    this.app            = app;
+    this.gfx            = new Graphics();
+    this.countdownLayer = new Container();
+    this.textLayer      = new Container();
+    app.stage.addChild(this.countdownLayer, this.gfx, this.textLayer);
   }
 
   draw(gl: GameLoop, mouseX: number, mouseY: number, deltaMS: number): void {
     this.timeMs += deltaMS;
     this.applyShake(gl, deltaMS);
     this.gfx.clear();
+    this.drawCountdown(gl);
     this.drawBorder();
     this.drawTargetingRing(gl, mouseX, mouseY);
     this.drawCorpses(gl);
@@ -34,9 +38,32 @@ export class Renderer {
   destroy(): void {
     for (const t of this.activeTexts.values()) t.destroy();
     this.activeTexts.clear();
+    this.countdownText?.destroy();
   }
 
   // ── Private draw methods ───────────────────────────────────────────────────
+
+  private drawCountdown(gl: GameLoop): void {
+    if (gl.countdownPulse <= 0) {
+      if (this.countdownText) this.countdownText.alpha = 0;
+      return;
+    }
+    if (!this.countdownText) {
+      this.countdownText = new Text({
+        text:  '',
+        style: { fontFamily: 'monospace', fontSize: 380, fontWeight: 'bold', fill: COLORS.PLAYER },
+      });
+      // anchor is proportional — stays centered regardless of character or scale
+      this.countdownText.anchor.set(0.5, 0.5);
+      this.countdownText.x = ARENA.WIDTH  / 2;
+      this.countdownText.y = ARENA.HEIGHT / 2;
+      this.countdownLayer.addChild(this.countdownText);
+    }
+    const t = this.countdownText;
+    if (t.text !== String(gl.countdownDigit)) t.text = String(gl.countdownDigit);
+    t.scale.set(0.7 + (1 - gl.countdownPulse) * 1.3);
+    t.alpha = gl.countdownPulse * 0.20;
+  }
 
   private applyShake(gl: GameLoop, deltaMS: number): void {
     if (gl.playerHitFlash) this.shakeTimer = 220;

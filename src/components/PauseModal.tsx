@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CSS } from '../constants';
 import { saveState, availablePoints, deleteSave } from '../state';
 
@@ -160,32 +160,34 @@ function SettingsTab() {
 // ── Modal variants ────────────────────────────────────────────────────────────
 
 function IntroModal({ onResume }: { onResume: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Space') { e.preventDefault(); onResume(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onResume]);
+
   return (
     <div style={overlay}>
-      <div style={modalBase}>
-        <div style={{ textAlign: 'center', fontSize: 11, letterSpacing: 4, opacity: 0.4, marginBottom: 10 }}>
+      <div style={{ ...modalBase, textAlign: 'center' }}>
+        <div style={{ fontSize: 11, letterSpacing: 4, opacity: 0.4, marginBottom: 12 }}>
           CELL GAME
         </div>
-        <div style={{ textAlign: 'center', fontSize: 26, fontWeight: 'bold', letterSpacing: 2, marginBottom: 8 }}>
+        <div style={{ fontSize: 28, fontWeight: 'bold', letterSpacing: 3, marginBottom: 32 }}>
           NUTRIENT HUNT
         </div>
-        <div style={{ textAlign: 'center', fontSize: 13, opacity: 0.6, lineHeight: 1.7, marginBottom: 24 }}>
-          Aim the ring at prey. Move close to hunt.<br />
-          Survive the timer. Spend nutrients on upgrades.
+        <ResumeButton label="[ START HUNT ]" onResume={onResume} />
+        <div style={{ fontSize: 11, opacity: 0.28, marginTop: 14, letterSpacing: 1.5 }}>
+          SPACE TO START
         </div>
-        <ControlsGrid />
-        <div style={{ textAlign: 'center', fontSize: 11, opacity: 0.35, margin: '18px 0', lineHeight: 1.6 }}>
-          Die and lose 75% of nutrients.<br />
-          Survive and keep them all.
-        </div>
-        <ResumeButton label="[ HUNT ]" onResume={onResume} />
       </div>
     </div>
   );
 }
 
 function PauseMenuModal({ onResume }: { onResume: () => void }) {
-  const [tab, setTab] = useState<Tab>('controls');
+  const [tab, setTab] = useState<Tab>('save');
 
   return (
     <div style={overlay}>

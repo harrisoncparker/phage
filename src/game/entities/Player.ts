@@ -1,6 +1,7 @@
 import { PLAYER_BASE, ARENA, ORBIT, SHIELD, TARGETING_RING_RADIUS } from '../../constants';
 import type { PlayerStats } from '../../state';
 import type { EnemyCell } from './EnemyCell';
+import { SFX } from '../Sound';
 
 export interface AttackEvent {
   target: EnemyCell;
@@ -67,6 +68,7 @@ export class Player {
 
   private tickShield(delta: number, spaceHeld: boolean): void {
     if (this.stats.shieldCapacity <= 0) return;
+    const wasShielding = this._shielding;
 
     if (spaceHeld && this.shieldCharge > 0) {
       this._shielding   = true;
@@ -79,6 +81,9 @@ export class Player {
         this.shieldCharge + SHIELD.RECHARGE_RATE * delta / 1000,
       );
     }
+
+    if (!wasShielding && this._shielding) SFX.shieldActivate();
+    else if (wasShielding && !this._shielding) SFX.shieldDeactivate();
   }
 
   // ── Movement ──────────────────────────────────────────────────────────────

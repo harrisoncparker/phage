@@ -3,6 +3,7 @@ import { Application } from 'pixi.js';
 import { ARENA, COLORS } from '../constants';
 import { GameLoop, type RunEndInfo } from '../game/GameLoop';
 import { Renderer } from '../game/Renderer';
+import { updateMusic } from '../game/Music';
 
 interface Props {
   gameLoop: GameLoop;
@@ -73,9 +74,22 @@ export function GameCanvas({ gameLoop, onRunEnd, paused }: Props) {
       // Main loop
       app.ticker.add(({ deltaMS }) => {
         const gl = gameLoopRef.current;
-        if (gl.phase === 'over' || pausedRef.current) return;
+
+        if (gl.phase === 'over' || pausedRef.current) {
+          // Fade dynamic layers to zero while pad keeps playing
+          updateMusic({ enemyCount: 0, hearts: 99, maxHearts: 99, inCountdown: false });
+          return;
+        }
+
         gl.tick(deltaMS, mouse.x, mouse.y, keys.space);
         renderer.draw(gl, mouse.x, mouse.y, deltaMS);
+
+        updateMusic({
+          enemyCount:  gl.enemies.length,
+          hearts:      gl.player.currentHearts,
+          maxHearts:   gl.player.maxHearts,
+          inCountdown: gl.countdownDigit > 0,
+        });
       });
 
       return () => {

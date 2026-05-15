@@ -3,6 +3,7 @@ import { saveState, addPoints, persistSave } from '../state';
 import { Player, type AttackEvent } from './entities/Player';
 import { EnemyCell, type EnemyType } from './entities/EnemyCell';
 import { Projectile } from './entities/Projectile';
+import { SFX } from './Sound';
 
 const SPAWN_BASE = 1200;
 const SPAWN_MIN  = 350;
@@ -64,6 +65,10 @@ export class GameLoop {
   phase: 'playing' | 'over' = 'playing';
   hitStopTimer = 0;
 
+  countdownDigit = 0;
+  countdownPulse = 0;
+  private lastCountdownSec = -1;
+
   onRunEnd?: (info: RunEndInfo) => void;
 
   private spawnTimer = 0;
@@ -86,6 +91,18 @@ export class GameLoop {
     // Timer
     this.runTimeLeft = Math.max(0, this.runTimeLeft - delta);
     if (this.runTimeLeft === 0) { this.endRun('timeout'); return; }
+
+    // Countdown pulse (last 5 seconds)
+    const secsLeft = Math.ceil(this.runTimeLeft / 1000);
+    if (secsLeft <= 5 && secsLeft > 0 && secsLeft !== this.lastCountdownSec) {
+      this.lastCountdownSec = secsLeft;
+      this.countdownDigit   = secsLeft;
+      this.countdownPulse   = 1;
+      SFX.countdown(secsLeft);
+    }
+    if (this.countdownPulse > 0) {
+      this.countdownPulse = Math.max(0, this.countdownPulse - delta / 900);
+    }
 
     // Spawn
     this.spawnTimer -= delta;
@@ -123,10 +140,13 @@ export class GameLoop {
         if (p.hits(this.player.x, this.player.y, this.player.radius)) {
           this.projectiles.splice(i, 1);
           if (!this.player.isShielding) {
+            SFX.playerDamage();
             this.playerHitFlash = true;
             this.hitStopTimer = 60;
             const dead = this.player.takeDamage();
-            if (dead) { this.endRun('death'); return; }
+            if (dead) { SFX.playerDie(); this.endRun('death'); return; }
+          } else {
+            SFX.shieldAbsorb();
           }
         }
       } else {
@@ -183,13 +203,16 @@ export class GameLoop {
 
   private firePlayerProjectile(atk: AttackEvent): void {
     const { target, fromX, fromY } = atk;
+    SFX.playerFire();
     this.projectiles.push(new Projectile(fromX, fromY, target.x, target.y, 'player', saveState.stats.attack));
     this.spawnMuzzleParticles(fromX, fromY, target.x, target.y);
   }
 
   private applyHit(target: EnemyCell, damage: number): void {
     const dead = target.takeDamage(damage);
+    if (!dead) SFX.enemyHit();
     if (dead) {
+      SFX.enemyDie();
       target.active = false;
       this.hitStopTimer = 45;
       this.spawnBurstParticles(target.x, target.y);
@@ -248,6 +271,7 @@ export class GameLoop {
   private endRun(reason: 'timeout' | 'death'): void {
     if (this.phase !== 'playing') return;
     this.phase = 'over';
+    if (reason === 'timeout') SFX.runSurvived();
     const rawScore = this.runScore;
     const earned   = reason === 'death' ? Math.floor(rawScore * 0.25) : rawScore;
     addPoints(earned);
