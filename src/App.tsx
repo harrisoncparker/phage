@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ARENA, CSS } from './constants';
-import { saveState } from './state';
+import { saveState, saveWasReset } from './state';
 import { GameLoop, type RunEndInfo } from './game/GameLoop';
 import { GameCanvas } from './components/GameCanvas';
 import { HUD } from './components/HUD';
@@ -28,6 +28,7 @@ export function App() {
   const [isFirstLaunch,  setIsFirstLaunch]  = useState(() => saveState.runCount === 0);
   const [scale,          setScale]          = useState(() => computeScale(PLAY_PADDING));
   const [soundLocked,    setSoundLocked]    = useState(true);
+  const [showResetNote,  setShowResetNote]  = useState(saveWasReset);
 
   const handleRunEnd = useCallback((info: RunEndInfo) => {
     setEndInfo(info);
@@ -118,6 +119,47 @@ export function App() {
 
       {paused && (
         <PauseModal isIntro={isFirstLaunch} onResume={handleResume} />
+      )}
+
+      {showResetNote && (
+        <div
+          onClick={() => setShowResetNote(false)}
+          style={{
+            position:       'absolute',
+            inset:          0,
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(6px)',
+            background:     'rgba(238,216,199,0.72)',
+            zIndex:         200,
+            cursor:         'pointer',
+          }}
+        >
+          <div style={{
+            fontFamily:   'monospace',
+            textAlign:    'center',
+            color:        CSS.TEXT,
+            padding:      '32px 44px',
+            background:   CSS.BG,
+            borderRadius: 18,
+            boxShadow:    '0 8px 48px rgba(38,70,83,0.22)',
+            maxWidth:     380,
+          }}>
+            <div style={{ fontSize: 11, letterSpacing: 4, opacity: 0.4, marginBottom: 14 }}>
+              NOTICE
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 'bold', letterSpacing: 1, marginBottom: 16 }}>
+              Save data reset
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.6, lineHeight: 1.7, marginBottom: 24 }}>
+              Your progress has been cleared as part of an update during playtesting. Thanks for playing — your feedback helps!
+            </div>
+            <div style={{ fontSize: 11, letterSpacing: 2, opacity: 0.35 }}>
+              CLICK TO CONTINUE
+            </div>
+          </div>
+        </div>
       )}
 
       {soundLocked && !paused && (

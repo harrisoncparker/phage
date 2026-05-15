@@ -1,6 +1,9 @@
 // Persistent save state across runs
+// Bump SAVE_VERSION to invalidate all existing saves on next load
 
 import { PLAYER_BASE } from './constants';
+
+const SAVE_VERSION = 2;
 
 export interface PlayerStats {
   speed:          number;
@@ -42,11 +45,18 @@ export const saveState: SaveState = {
 
 const SAVE_KEY = 'cell-game-v1';
 
+export let saveWasReset = false;
+
 function loadFromStorage(): void {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
+    if ((d.version ?? 0) !== SAVE_VERSION) {
+      localStorage.removeItem(SAVE_KEY);
+      saveWasReset = true;
+      return;
+    }
     saveState.totalPoints   = d.totalPoints   ?? 0;
     saveState.spentPoints   = d.spentPoints   ?? 0;
     saveState.runCount      = d.runCount      ?? 0;
@@ -64,6 +74,7 @@ export function deleteSave(): void {
 export function persistSave(): void {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version:       SAVE_VERSION,
       totalPoints:   saveState.totalPoints,
       spentPoints:   saveState.spentPoints,
       runCount:      saveState.runCount,
