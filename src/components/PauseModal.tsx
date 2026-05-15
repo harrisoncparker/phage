@@ -172,7 +172,7 @@ function IntroModal({ onResume }: { onResume: () => void }) {
     <div style={overlay}>
       <div style={{ ...modalBase, textAlign: 'center' }}>
         <div style={{ fontSize: 11, letterSpacing: 4, opacity: 0.4, marginBottom: 12 }}>
-          CELL GAME
+          PHAGE
         </div>
         <div style={{ fontSize: 28, fontWeight: 'bold', letterSpacing: 3, marginBottom: 32 }}>
           NUTRIENT HUNT

@@ -13,7 +13,7 @@ npm run preview  # serve dist/
 ```
 src/
   constants.ts          # all magic numbers — ARENA, COLORS, ENEMY, ORBIT, etc.
-  state.ts              # persistent save state, localStorage (key: cell-game-v1)
+  state.ts              # persistent save state, localStorage (key: phage-v1)
   App.tsx               # top-level: phase machine (playing | upgrading), scale/pan
   main.tsx              # React root mount
 
@@ -40,7 +40,7 @@ src/
 - **GameLoop never imports Renderer; Renderer never mutates GameLoop.** One-way data flow.
 - **`upgradeGrid.ts`** owns node layout. To move nodes, change `GRID.ORIGIN_X/Y` or `GRID.CELL`, or adjust the `gridPos(col, row)` call in `UpgradeTree.tsx`.
 - Save state persists across hot-reloads in dev (localStorage). Use `deleteSave()` from `state.ts` to reset.
-- GitHub Pages base is `/cell-game/` — set in `vite.config.ts`. Don't remove it.
+- GitHub Pages base is `/phage/` — set in `vite.config.ts`. Don't remove it.
 
 ## Enemy AI summary
 

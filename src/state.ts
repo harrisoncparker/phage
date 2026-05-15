@@ -43,7 +43,7 @@ export const saveState: SaveState = {
 
 // ── Persistence ──────────────────────────────────────────────────────────────
 
-const SAVE_KEY = 'cell-game-v1';
+const SAVE_KEY = 'phage-v1';
 
 export let saveWasReset = false;
 
