@@ -16,8 +16,8 @@ const PHRASES_HZ: (number | null)[][] = [
   [329.63, 261.63, null,   220.00],
 ];
 
-// 2-bar drum loop — beat = quarter-note position (0–7.75)
-const DRUMS: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
+// Saved drum track (detached) — restore by swapping DRUMS_SAVED back to DRUMS
+const DRUMS_SAVED: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
   { beat: 0,    t: 'kick',  v: 1.0  },
   { beat: 0.5,  t: 'hat',   v: 0.60 },
   { beat: 1.0,  t: 'hat',   v: 0.50 },
@@ -44,6 +44,14 @@ const DRUMS: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
   { beat: 7.25, t: 'snare', v: 0.28 },
   { beat: 7.5,  t: 'hat',   v: 0.55 },
   { beat: 7.75, t: 'kick',  v: 0.50 },
+];
+
+// 4-to-the-floor kick only — one kick per half note (every 2 beats) across 2 bars
+const DRUMS: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
+  { beat: 0, t: 'kick', v: 0.35 },
+  { beat: 2, t: 'kick', v: 0.35 },
+  { beat: 4, t: 'kick', v: 0.35 },
+  { beat: 6, t: 'kick', v: 0.35 },
 ];
 
 export interface MusicState {
@@ -142,12 +150,13 @@ function scheduleKick(at: number, v: number): void {
   const osc = c.createOscillator();
   const g   = c.createGain();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(150, at);
-  osc.frequency.exponentialRampToValueAtTime(0.01, at + 0.4);
-  g.gain.setValueAtTime(v * 0.9, at);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.45);
+  osc.frequency.setValueAtTime(200, at);
+  osc.frequency.exponentialRampToValueAtTime(40, at + 0.08);
+  osc.frequency.exponentialRampToValueAtTime(0.01, at + 0.25);
+  g.gain.setValueAtTime(v * 1.2, at);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
   osc.connect(g); g.connect(drumGain);
-  osc.start(at); osc.stop(at + 0.5);
+  osc.start(at); osc.stop(at + 0.32);
 }
 
 function scheduleSnare(at: number, v: number): void {
@@ -341,7 +350,7 @@ export function updateMusic(state: MusicState): void {
   lastCdwn    = inCountdown;
 
   ramp(bassGain, enemyCount > 0 ? 0.60 : 0);
-  ramp(drumGain, enemyCount > 2 ? Math.min(0.80, (enemyCount - 2) * 0.13) : 0);
+  ramp(drumGain, enemyCount > 0 ? 0.28 : 0);
   ramp(melGain,  enemyCount > 5 ? 0.38 : 0);
 
   const danger = hearts <= 1;
