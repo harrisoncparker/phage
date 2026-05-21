@@ -16,8 +16,9 @@ const PHRASES_HZ: (number | null)[][] = [
   [329.63, 261.63, null,   220.00],
 ];
 
-// Saved drum track (detached) — restore by swapping DRUMS_SAVED back to DRUMS
-const DRUMS_SAVED: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
+// Saved drum track (detached) — restore by swapping _DRUMS_SAVED back to DRUMS
+// @ts-ignore intentionally unused
+const _DRUMS_SAVED: { beat: number; t: 'kick' | 'snare' | 'hat'; v: number }[] = [
   { beat: 0,    t: 'kick',  v: 1.0  },
   { beat: 0.5,  t: 'hat',   v: 0.60 },
   { beat: 1.0,  t: 'hat',   v: 0.50 },
