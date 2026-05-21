@@ -1,16 +1,18 @@
-import { ARENA, RUN, ENEMY } from '../constants';
-import { saveState, addPoints, persistSave } from '../state';
-import { Player, type AttackEvent } from './entities/Player';
+import { ARENA, ENEMY, RUN } from '../constants';
+import { addPoints, persistSave, saveState } from '../state';
 import { EnemyCell, type EnemyType } from './entities/EnemyCell';
+import { type AttackEvent, Player } from './entities/Player';
 import { Projectile } from './entities/Projectile';
 import { SFX } from './Sound';
 
 const SPAWN_BASE = 1200;
-const SPAWN_MIN  = 350;
+const SPAWN_MIN = 350;
 
 export interface Particle {
-  x: number; y: number;
-  vx: number; vy: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
   radius: number;
   life: number;
   maxLife: number;
@@ -26,7 +28,8 @@ export interface FloatText {
 }
 
 export interface Corpse {
-  x: number; y: number;
+  x: number;
+  y: number;
   radius: number;
   type: EnemyType;
   life: number;
@@ -35,32 +38,32 @@ export interface Corpse {
 
 export interface RunEndInfo {
   rawScore: number;
-  earned:   number;
-  reason:   'timeout' | 'death';
+  earned: number;
+  reason: 'timeout' | 'death';
 }
 
 export interface GameSnapshot {
-  runTimeLeft:     number;
-  runScore:        number;
-  hearts:          number;
-  maxHearts:       number;
-  hasShield:       boolean;
+  runTimeLeft: number;
+  runScore: number;
+  hearts: number;
+  maxHearts: number;
+  hasShield: boolean;
   shieldChargeFrac: number;
-  isShielding:     boolean;
+  isShielding: boolean;
 }
 
 let _uid = 0;
 
 export class GameLoop {
   readonly player: Player;
-  enemies:    EnemyCell[]  = [];
+  enemies: EnemyCell[] = [];
   projectiles: Projectile[] = [];
-  floatTexts: FloatText[]  = [];
-  corpses:    Corpse[]     = [];
-  particles:  Particle[]   = [];
+  floatTexts: FloatText[] = [];
+  corpses: Corpse[] = [];
+  particles: Particle[] = [];
   playerHitFlash = false;
 
-  runScore    = 0;
+  runScore = 0;
   runTimeLeft: number;
   phase: 'playing' | 'over' = 'playing';
   hitStopTimer = 0;
@@ -75,7 +78,11 @@ export class GameLoop {
 
   constructor() {
     this.runTimeLeft = RUN.BASE_DURATION + saveState.stats.bonusTime;
-    this.player = new Player(ARENA.WIDTH / 2, ARENA.HEIGHT / 2, saveState.stats);
+    this.player = new Player(
+      ARENA.WIDTH / 2,
+      ARENA.HEIGHT / 2,
+      saveState.stats,
+    );
   }
 
   tick(delta: number, mouseX: number, mouseY: number, spaceHeld = false): void {
@@ -90,14 +97,17 @@ export class GameLoop {
 
     // Timer
     this.runTimeLeft = Math.max(0, this.runTimeLeft - delta);
-    if (this.runTimeLeft === 0) { this.endRun('timeout'); return; }
+    if (this.runTimeLeft === 0) {
+      this.endRun('timeout');
+      return;
+    }
 
     // Countdown pulse (last 5 seconds)
     const secsLeft = Math.ceil(this.runTimeLeft / 1000);
     if (secsLeft <= 5 && secsLeft > 0 && secsLeft !== this.lastCountdownSec) {
       this.lastCountdownSec = secsLeft;
-      this.countdownDigit   = secsLeft;
-      this.countdownPulse   = 1;
+      this.countdownDigit = secsLeft;
+      this.countdownPulse = 1;
       SFX.countdown(secsLeft);
     }
     if (this.countdownPulse > 0) {
@@ -108,12 +118,19 @@ export class GameLoop {
     this.spawnTimer -= delta;
     if (this.spawnTimer <= 0) {
       this.spawnEnemy();
-      const t = 1 - this.runTimeLeft / (RUN.BASE_DURATION + saveState.stats.bonusTime);
+      const t =
+        1 - this.runTimeLeft / (RUN.BASE_DURATION + saveState.stats.bonusTime);
       this.spawnTimer = lerp(SPAWN_BASE, SPAWN_MIN, t);
     }
 
     // Player
-    const atk = this.player.update(delta, mouseX, mouseY, this.enemies, spaceHeld);
+    const atk = this.player.update(
+      delta,
+      mouseX,
+      mouseY,
+      this.enemies,
+      spaceHeld,
+    );
     if (atk) this.firePlayerProjectile(atk);
 
     // Enemies
@@ -125,7 +142,9 @@ export class GameLoop {
         continue;
       }
       if (evt?.type === 'fire') {
-        this.projectiles.push(new Projectile(e.x, e.y, evt.toX, evt.toY, 'enemy', 1));
+        this.projectiles.push(
+          new Projectile(e.x, e.y, evt.toX, evt.toY, 'enemy', 1),
+        );
         this.spawnMuzzleParticles(e.x, e.y, evt.toX, evt.toY);
       }
     }
@@ -135,7 +154,10 @@ export class GameLoop {
       if (e.type !== 'aware' || !e.isActivated) continue;
       for (const other of this.enemies) {
         if (other !== e && other.type === 'aware' && !other.isActivated) {
-          if (Math.hypot(other.x - e.x, other.y - e.y) < ENEMY.AWARE.PACK_ALERT_RADIUS) {
+          if (
+            Math.hypot(other.x - e.x, other.y - e.y) <
+            ENEMY.AWARE.PACK_ALERT_RADIUS
+          ) {
             other.activate();
           }
         }
@@ -146,7 +168,10 @@ export class GameLoop {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.update(delta);
-      if (p.expired) { this.projectiles.splice(i, 1); continue; }
+      if (p.expired) {
+        this.projectiles.splice(i, 1);
+        continue;
+      }
 
       if (p.owner === 'enemy') {
         if (p.hits(this.player.x, this.player.y, this.player.radius)) {
@@ -156,7 +181,11 @@ export class GameLoop {
             this.playerHitFlash = true;
             this.hitStopTimer = 60;
             const dead = this.player.takeDamage();
-            if (dead) { SFX.playerDie(); this.endRun('death'); return; }
+            if (dead) {
+              SFX.playerDie();
+              this.endRun('death');
+              return;
+            }
           } else {
             SFX.shieldAbsorb();
           }
@@ -203,20 +232,29 @@ export class GameLoop {
 
   getSnapshot(): GameSnapshot {
     return {
-      runTimeLeft:      this.runTimeLeft,
-      runScore:         this.runScore,
-      hearts:           this.player.currentHearts,
-      maxHearts:        this.player.maxHearts,
-      hasShield:        this.player.hasShield,
+      runTimeLeft: this.runTimeLeft,
+      runScore: this.runScore,
+      hearts: this.player.currentHearts,
+      maxHearts: this.player.maxHearts,
+      hasShield: this.player.hasShield,
       shieldChargeFrac: this.player.shieldChargeFrac,
-      isShielding:      this.player.isShielding,
+      isShielding: this.player.isShielding,
     };
   }
 
   private firePlayerProjectile(atk: AttackEvent): void {
     const { target, fromX, fromY } = atk;
     SFX.playerFire();
-    this.projectiles.push(new Projectile(fromX, fromY, target.x, target.y, 'player', saveState.stats.attack));
+    this.projectiles.push(
+      new Projectile(
+        fromX,
+        fromY,
+        target.x,
+        target.y,
+        'player',
+        saveState.stats.attack,
+      ),
+    );
     this.spawnMuzzleParticles(fromX, fromY, target.x, target.y);
   }
 
@@ -229,28 +267,40 @@ export class GameLoop {
       this.hitStopTimer = 45;
       this.spawnBurstParticles(target.x, target.y);
       this.corpses.push({
-        x: target.x, y: target.y,
-        radius: target.radius, type: target.type,
-        life: 220, maxLife: 220,
+        x: target.x,
+        y: target.y,
+        radius: target.radius,
+        type: target.type,
+        life: 220,
+        maxLife: 220,
       });
       this.runScore += target.points;
       this.floatTexts.push({
         id: _uid++,
-        x: target.x, y: target.y,
+        x: target.x,
+        y: target.y,
         text: `+${target.points}`,
-        life: 900, maxLife: 900,
+        life: 900,
+        maxLife: 900,
       });
-      this.enemies = this.enemies.filter(e => e !== target);
+      this.enemies = this.enemies.filter((e) => e !== target);
     }
   }
 
-  private spawnMuzzleParticles(ex: number, ey: number, tx: number, ty: number): void {
-    const dx = tx - ex, dy = ty - ey;
+  private spawnMuzzleParticles(
+    ex: number,
+    ey: number,
+    tx: number,
+    ty: number,
+  ): void {
+    const dx = tx - ex,
+      dy = ty - ey;
     const len = Math.hypot(dx, dy) || 1;
     for (let i = 0; i < 5; i++) {
       const speed = 60 + Math.random() * 80;
       this.particles.push({
-        x: ex, y: ey,
+        x: ex,
+        y: ey,
         vx: (dx / len + (Math.random() - 0.5) * 0.6) * speed,
         vy: (dy / len + (Math.random() - 0.5) * 0.6) * speed,
         radius: 3 + Math.random() * 5,
@@ -265,7 +315,8 @@ export class GameLoop {
       const angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.4;
       const speed = 100 + Math.random() * 140;
       this.particles.push({
-        x, y,
+        x,
+        y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         radius: 5 + Math.random() * 8,
@@ -285,7 +336,7 @@ export class GameLoop {
     this.phase = 'over';
     if (reason === 'timeout') SFX.runSurvived();
     const rawScore = this.runScore;
-    const earned   = reason === 'death' ? Math.floor(rawScore * 0.25) : rawScore;
+    const earned = reason === 'death' ? Math.floor(rawScore * 0.25) : rawScore;
     addPoints(earned);
     saveState.runCount += 1;
     persistSave();
@@ -298,9 +349,10 @@ function lerp(a: number, b: number, t: number) {
 }
 
 function randInterior(): { x: number; y: number } {
-  const mx = ARENA.WIDTH  * 0.2, my = ARENA.HEIGHT * 0.2;
+  const mx = ARENA.WIDTH * 0.2,
+    my = ARENA.HEIGHT * 0.2;
   return {
-    x: mx + Math.random() * (ARENA.WIDTH  - mx * 2),
+    x: mx + Math.random() * (ARENA.WIDTH - mx * 2),
     y: my + Math.random() * (ARENA.HEIGHT - my * 2),
   };
 }
@@ -308,10 +360,14 @@ function randInterior(): { x: number; y: number } {
 function randEdge(): { x: number; y: number } {
   const m = 20;
   switch (Math.floor(Math.random() * 4)) {
-    case 0: return { x: ri(m, ARENA.WIDTH  - m), y: m };
-    case 1: return { x: ARENA.WIDTH  - m,        y: ri(m, ARENA.HEIGHT - m) };
-    case 2: return { x: ri(m, ARENA.WIDTH  - m), y: ARENA.HEIGHT - m };
-    default: return { x: m,                      y: ri(m, ARENA.HEIGHT - m) };
+    case 0:
+      return { x: ri(m, ARENA.WIDTH - m), y: m };
+    case 1:
+      return { x: ARENA.WIDTH - m, y: ri(m, ARENA.HEIGHT - m) };
+    case 2:
+      return { x: ri(m, ARENA.WIDTH - m), y: ARENA.HEIGHT - m };
+    default:
+      return { x: m, y: ri(m, ARENA.HEIGHT - m) };
   }
 }
 
@@ -321,7 +377,7 @@ function ri(min: number, max: number) {
 
 function pickType(): EnemyType {
   const r = Math.random();
-  if (r < 0.60) return 'oblivious';
+  if (r < 0.6) return 'oblivious';
   if (r < 0.85) return 'aware';
   if (r < 0.95) return 'ranged';
   return 'armoured';

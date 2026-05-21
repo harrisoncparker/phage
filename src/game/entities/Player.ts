@@ -1,12 +1,18 @@
-import { PLAYER_BASE, ARENA, ORBIT, SHIELD, TARGETING_RING_RADIUS } from '../../constants';
+import {
+  ARENA,
+  ORBIT,
+  PLAYER_BASE,
+  SHIELD,
+  TARGETING_RING_RADIUS,
+} from '../../constants';
 import type { PlayerStats } from '../../state';
-import type { EnemyCell } from './EnemyCell';
 import { SFX } from '../Sound';
+import type { EnemyCell } from './EnemyCell';
 
 export interface AttackEvent {
   target: EnemyCell;
-  fromX:  number;
-  fromY:  number;
+  fromX: number;
+  fromY: number;
 }
 
 export class Player {
@@ -19,15 +25,15 @@ export class Player {
   private attackTimer = 0;
 
   // Orbit state
-  private orbitAngle:     number;
+  private orbitAngle: number;
   private orbitDirection = 1;
   private orbitFlipTimer: number;
-  private bobTime   = 0;
-  private omega     = 0;
+  private bobTime = 0;
+  private omega = 0;
   private radialVel = 0;
 
   // Shield state
-  private shieldCharge: number;  // current charge in ms
+  private shieldCharge: number; // current charge in ms
   private _shielding = false;
 
   constructor(x: number, y: number, stats: PlayerStats) {
@@ -35,23 +41,40 @@ export class Player {
     this.y = y;
     this.stats = { ...stats };
     this.hearts = stats.maxHearts;
-    this.orbitAngle     = Math.random() * Math.PI * 2;
-    this.orbitFlipTimer = ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
-    this.shieldCharge   = stats.shieldCapacity;
+    this.orbitAngle = Math.random() * Math.PI * 2;
+    this.orbitFlipTimer =
+      ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
+    this.shieldCharge = stats.shieldCapacity;
   }
 
-  get currentHearts()    { return this.hearts; }
-  get maxHearts()        { return this.stats.maxHearts; }
-  get attackRange()      { return this.stats.range; }
-  get isShielding()      { return this._shielding; }
+  get currentHearts() {
+    return this.hearts;
+  }
+  get maxHearts() {
+    return this.stats.maxHearts;
+  }
+  get attackRange() {
+    return this.stats.range;
+  }
+  get isShielding() {
+    return this._shielding;
+  }
   get shieldChargeFrac() {
     return this.stats.shieldCapacity > 0
       ? this.shieldCharge / this.stats.shieldCapacity
       : 0;
   }
-  get hasShield()        { return this.stats.shieldCapacity > 0; }
+  get hasShield() {
+    return this.stats.shieldCapacity > 0;
+  }
 
-  update(delta: number, mx: number, my: number, enemies: EnemyCell[], spaceHeld: boolean): AttackEvent | null {
+  update(
+    delta: number,
+    mx: number,
+    my: number,
+    enemies: EnemyCell[],
+    spaceHeld: boolean,
+  ): AttackEvent | null {
     this.tickShield(delta, spaceHeld);
     this.move(delta, mx, my);
     if (this._shielding) return null;
@@ -71,14 +94,14 @@ export class Player {
     const wasShielding = this._shielding;
 
     if (spaceHeld && this.shieldCharge > 0) {
-      this._shielding   = true;
+      this._shielding = true;
       this.shieldCharge = Math.max(0, this.shieldCharge - delta);
       if (this.shieldCharge === 0) this._shielding = false;
     } else {
-      this._shielding   = false;
+      this._shielding = false;
       this.shieldCharge = Math.min(
         this.stats.shieldCapacity,
-        this.shieldCharge + SHIELD.RECHARGE_RATE * delta / 1000,
+        this.shieldCharge + (SHIELD.RECHARGE_RATE * delta) / 1000,
       );
     }
 
@@ -95,7 +118,8 @@ export class Player {
     this.orbitFlipTimer -= delta;
     if (this.orbitFlipTimer <= 0) {
       this.orbitDirection *= -1;
-      this.orbitFlipTimer = ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
+      this.orbitFlipTimer =
+        ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
     }
 
     const dx = this.x - cx;
@@ -103,35 +127,50 @@ export class Player {
     let r = Math.hypot(dx, dy);
     if (r > 1) this.orbitAngle = Math.atan2(dy, dx);
 
-    const bob     = Math.sin(this.bobTime / ORBIT.BOB_PERIOD * Math.PI * 2) * ORBIT.BOB_AMOUNT;
+    const bob =
+      Math.sin((this.bobTime / ORBIT.BOB_PERIOD) * Math.PI * 2) *
+      ORBIT.BOB_AMOUNT;
     const targetR = this.stats.range + bob;
 
-    const orbitScale  = Math.min(1, targetR / Math.max(r, 1));
+    const orbitScale = Math.min(1, targetR / Math.max(r, 1));
     const targetOmega = ORBIT.SPEED * this.orbitDirection * orbitScale;
     this.omega += (targetOmega - this.omega) * ORBIT.ANGULAR_STIFFNESS * dt;
     this.orbitAngle += this.omega * dt;
 
     const springF = ORBIT.RADIAL_K * (targetR - r);
-    const dampF   = -ORBIT.RADIAL_D * this.radialVel;
+    const dampF = -ORBIT.RADIAL_D * this.radialVel;
     this.radialVel += (springF + dampF) * dt;
-    this.radialVel = Math.max(-this.stats.speed, Math.min(this.stats.speed, this.radialVel));
+    this.radialVel = Math.max(
+      -this.stats.speed,
+      Math.min(this.stats.speed, this.radialVel),
+    );
     r = Math.max(0, r + this.radialVel * dt);
 
     this.x = cx + Math.cos(this.orbitAngle) * r;
     this.y = cy + Math.sin(this.orbitAngle) * r;
 
-    const prevX = this.x, prevY = this.y;
-    this.x = Math.max(this.radius, Math.min(ARENA.WIDTH  - this.radius, this.x));
-    this.y = Math.max(this.radius, Math.min(ARENA.HEIGHT - this.radius, this.y));
+    const prevX = this.x,
+      prevY = this.y;
+    this.x = Math.max(this.radius, Math.min(ARENA.WIDTH - this.radius, this.x));
+    this.y = Math.max(
+      this.radius,
+      Math.min(ARENA.HEIGHT - this.radius, this.y),
+    );
     if (this.x !== prevX || this.y !== prevY) {
       this.orbitDirection *= -1;
-      this.orbitFlipTimer = ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
+      this.orbitFlipTimer =
+        ORBIT.FLIP_MIN + Math.random() * (ORBIT.FLIP_MAX - ORBIT.FLIP_MIN);
     }
   }
 
   // ── Attack ────────────────────────────────────────────────────────────────
 
-  private tickAttack(delta: number, ringX: number, ringY: number, enemies: EnemyCell[]): AttackEvent | null {
+  private tickAttack(
+    delta: number,
+    ringX: number,
+    ringY: number,
+    enemies: EnemyCell[],
+  ): AttackEvent | null {
     this.attackTimer += delta;
     if (this.attackTimer < 1000 / this.stats.rate) return null;
 
@@ -143,13 +182,20 @@ export class Player {
     return target ? { target, fromX: this.x, fromY: this.y } : null;
   }
 
-  private nearestInRing(enemies: EnemyCell[], ringX: number, ringY: number): EnemyCell | null {
+  private nearestInRing(
+    enemies: EnemyCell[],
+    ringX: number,
+    ringY: number,
+  ): EnemyCell | null {
     let best: EnemyCell | null = null;
     let bestDist = TARGETING_RING_RADIUS;
     for (const e of enemies) {
       if (!e.active) continue;
       const d = Math.hypot(e.x - ringX, e.y - ringY);
-      if (d < bestDist) { bestDist = d; best = e; }
+      if (d < bestDist) {
+        bestDist = d;
+        best = e;
+      }
     }
     return best;
   }

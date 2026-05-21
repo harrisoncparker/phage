@@ -1,22 +1,22 @@
-import { Application, Graphics, Text, Container } from 'pixi.js';
+import { type Application, Container, Graphics, Text } from 'pixi.js';
 import { ARENA, COLORS, ORBIT, TARGETING_RING_RADIUS } from '../constants';
 import type { GameLoop } from './GameLoop';
 
 export class Renderer {
-  private readonly app:            Application;
-  private readonly gfx:            Graphics;
+  private readonly app: Application;
+  private readonly gfx: Graphics;
   private readonly countdownLayer: Container;
-  private readonly textLayer:      Container;
+  private readonly textLayer: Container;
   private readonly activeTexts = new Map<number, Text>();
   private countdownText: Text | null = null;
   private shakeTimer = 0;
-  private timeMs     = 0;
+  private timeMs = 0;
 
   constructor(app: Application) {
-    this.app            = app;
-    this.gfx            = new Graphics();
+    this.app = app;
+    this.gfx = new Graphics();
     this.countdownLayer = new Container();
-    this.textLayer      = new Container();
+    this.textLayer = new Container();
     app.stage.addChild(this.countdownLayer, this.gfx, this.textLayer);
   }
 
@@ -50,19 +50,25 @@ export class Renderer {
     }
     if (!this.countdownText) {
       this.countdownText = new Text({
-        text:  '',
-        style: { fontFamily: 'monospace', fontSize: 380, fontWeight: 'bold', fill: COLORS.PLAYER },
+        text: '',
+        style: {
+          fontFamily: 'monospace',
+          fontSize: 380,
+          fontWeight: 'bold',
+          fill: COLORS.PLAYER,
+        },
       });
       // anchor is proportional — stays centered regardless of character or scale
       this.countdownText.anchor.set(0.5, 0.5);
-      this.countdownText.x = ARENA.WIDTH  / 2;
+      this.countdownText.x = ARENA.WIDTH / 2;
       this.countdownText.y = ARENA.HEIGHT / 2;
       this.countdownLayer.addChild(this.countdownText);
     }
     const t = this.countdownText;
-    if (t.text !== String(gl.countdownDigit)) t.text = String(gl.countdownDigit);
+    if (t.text !== String(gl.countdownDigit))
+      t.text = String(gl.countdownDigit);
     t.scale.set(0.7 + (1 - gl.countdownPulse) * 1.3);
-    t.alpha = gl.countdownPulse * 0.20;
+    t.alpha = gl.countdownPulse * 0.2;
   }
 
   private applyShake(gl: GameLoop, deltaMS: number): void {
@@ -83,12 +89,19 @@ export class Renderer {
     this.gfx.stroke({ color: 0xd4b0a0, width: 3, alpha: 0.55 });
   }
 
-  private drawTargetingRing(gl: GameLoop, mouseX: number, mouseY: number): void {
+  private drawTargetingRing(
+    gl: GameLoop,
+    mouseX: number,
+    mouseY: number,
+  ): void {
     const hasEnemiesInRing = gl.enemies.some(
-      e => e.active && Math.hypot(e.x - mouseX, e.y - mouseY) < TARGETING_RING_RADIUS
+      (e) =>
+        e.active &&
+        Math.hypot(e.x - mouseX, e.y - mouseY) < TARGETING_RING_RADIUS,
     );
-    const playerInRange = Math.hypot(gl.player.x - mouseX, gl.player.y - mouseY)
-      <= gl.player.attackRange + ORBIT.BOB_AMOUNT;
+    const playerInRange =
+      Math.hypot(gl.player.x - mouseX, gl.player.y - mouseY) <=
+      gl.player.attackRange + ORBIT.BOB_AMOUNT;
 
     this.gfx.circle(mouseX, mouseY, TARGETING_RING_RADIUS);
 
@@ -123,7 +136,8 @@ export class Renderer {
 
       // Ranged charge bar
       if (e.type === 'ranged' && e.chargeProgress > 0) {
-        const bw = 38, bh = 5;
+        const bw = 38,
+          bh = 5;
         const bx = e.x - bw / 2;
         const by = e.y - e.radius - 12;
         this.gfx.roundRect(bx, by, bw, bh, 3);
@@ -131,7 +145,9 @@ export class Renderer {
         const filled = bw * e.chargeProgress;
         if (filled > 1) {
           this.gfx.roundRect(bx, by, filled, bh, 3);
-          this.gfx.fill({ color: e.chargeProgress > 0.75 ? COLORS.RANGED : COLORS.AWARE });
+          this.gfx.fill({
+            color: e.chargeProgress > 0.75 ? COLORS.RANGED : COLORS.AWARE,
+          });
         }
       }
 
@@ -139,7 +155,11 @@ export class Renderer {
       if (e.alertPulse > 0) {
         const ringR = e.radius + (1 - e.alertPulse) * 22;
         this.gfx.circle(e.x, e.y, ringR);
-        this.gfx.stroke({ color: COLORS.AWARE, width: 2, alpha: e.alertPulse * 0.8 });
+        this.gfx.stroke({
+          color: COLORS.AWARE,
+          width: 2,
+          alpha: e.alertPulse * 0.8,
+        });
       }
 
       if (e.type === 'armoured') {
@@ -165,7 +185,9 @@ export class Renderer {
   private drawProjectiles(gl: GameLoop): void {
     for (const p of gl.projectiles) {
       this.gfx.circle(p.x, p.y, p.radius);
-      this.gfx.fill({ color: p.owner === 'player' ? COLORS.PLAYER_PROJ : COLORS.PROJECTILE });
+      this.gfx.fill({
+        color: p.owner === 'player' ? COLORS.PLAYER_PROJ : COLORS.PROJECTILE,
+      });
     }
   }
 
@@ -183,10 +205,10 @@ export class Renderer {
     this.gfx.fill({ color });
 
     // Eye — BG-colored dot that snaps directly toward mouse, no lerp
-    const eyeAngle  = Math.atan2(mouseY - gl.player.y, mouseX - gl.player.x);
-    const eyeDist   = gl.player.radius * 0.42;
-    const ex        = gl.player.x + Math.cos(eyeAngle) * eyeDist;
-    const ey        = gl.player.y + Math.sin(eyeAngle) * eyeDist;
+    const eyeAngle = Math.atan2(mouseY - gl.player.y, mouseX - gl.player.x);
+    const eyeDist = gl.player.radius * 0.42;
+    const ex = gl.player.x + Math.cos(eyeAngle) * eyeDist;
+    const ey = gl.player.y + Math.sin(eyeAngle) * eyeDist;
     this.gfx.circle(ex, ey, 5);
     this.gfx.fill({ color: COLORS.BG });
 
@@ -201,7 +223,7 @@ export class Renderer {
   private syncFloatTexts(gl: GameLoop): void {
     // Remove stale text objects
     for (const [id, t] of this.activeTexts) {
-      if (!gl.floatTexts.find(f => f.id === id)) {
+      if (!gl.floatTexts.find((f) => f.id === id)) {
         this.textLayer.removeChild(t);
         t.destroy();
         this.activeTexts.delete(id);
@@ -212,15 +234,20 @@ export class Renderer {
       let t = this.activeTexts.get(ft.id);
       if (!t) {
         t = new Text({
-          text:  ft.text,
-          style: { fontFamily: 'monospace', fontSize: 18, fontStyle: 'italic', fill: COLORS.ACCENT },
+          text: ft.text,
+          style: {
+            fontFamily: 'monospace',
+            fontSize: 18,
+            fontStyle: 'italic',
+            fill: COLORS.ACCENT,
+          },
         });
         this.textLayer.addChild(t);
         this.activeTexts.set(ft.id, t);
       }
       const progress = 1 - ft.life / ft.maxLife;
-      t.x     = ft.x - t.width / 2;
-      t.y     = ft.y - progress * 52;
+      t.x = ft.x - t.width / 2;
+      t.y = ft.y - progress * 52;
       t.alpha = ft.life / ft.maxLife;
     }
   }

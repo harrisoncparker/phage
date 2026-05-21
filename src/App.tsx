@@ -1,13 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
-import { ARENA, CSS } from './constants';
-import { saveState, saveWasReset } from './state';
-import { GameLoop, type RunEndInfo } from './game/GameLoop';
+import { useCallback, useEffect, useState } from 'react';
 import { GameCanvas } from './components/GameCanvas';
 import { HUD } from './components/HUD';
-import { UpgradeTree } from './components/UpgradeTree';
 import { PauseModal } from './components/PauseModal';
+import { UpgradeTree } from './components/UpgradeTree';
+import { ARENA, CSS } from './constants';
+import { GameLoop, type RunEndInfo } from './game/GameLoop';
+import { pauseMusic, resumeMusic, startMusic } from './game/Music';
 import { unlockAudio } from './game/Sound';
-import { startMusic, pauseMusic, resumeMusic } from './game/Music';
+import { saveState, saveWasReset } from './state';
 
 type Phase = 'playing' | 'upgrading';
 
@@ -15,20 +15,22 @@ const PLAY_PADDING = 20;
 
 function computeScale(padding = 0) {
   return Math.min(
-    (window.innerWidth  - padding * 2) / ARENA.WIDTH,
+    (window.innerWidth - padding * 2) / ARENA.WIDTH,
     (window.innerHeight - padding * 2) / ARENA.HEIGHT,
   );
 }
 
 export function App() {
-  const [phase,          setPhase]          = useState<Phase>('playing');
-  const [endInfo,        setEndInfo]        = useState<RunEndInfo | null>(null);
-  const [gameLoop,       setGameLoop]       = useState(() => new GameLoop());
-  const [showModal,      setShowModal]      = useState(() => saveState.runCount === 0);
-  const [isFirstLaunch,  setIsFirstLaunch]  = useState(() => saveState.runCount === 0);
-  const [scale,          setScale]          = useState(() => computeScale(PLAY_PADDING));
-  const [soundLocked,    setSoundLocked]    = useState(true);
-  const [showResetNote,  setShowResetNote]  = useState(saveWasReset);
+  const [phase, setPhase] = useState<Phase>('playing');
+  const [endInfo, setEndInfo] = useState<RunEndInfo | null>(null);
+  const [gameLoop, setGameLoop] = useState(() => new GameLoop());
+  const [showModal, setShowModal] = useState(() => saveState.runCount === 0);
+  const [isFirstLaunch, setIsFirstLaunch] = useState(
+    () => saveState.runCount === 0,
+  );
+  const [scale, setScale] = useState(() => computeScale(PLAY_PADDING));
+  const [soundLocked, setSoundLocked] = useState(true);
+  const [showResetNote, setShowResetNote] = useState(saveWasReset);
 
   const handleRunEnd = useCallback((info: RunEndInfo) => {
     setEndInfo(info);
@@ -51,7 +53,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'Escape') return;
       if (phase !== 'playing') return;
-      setShowModal(v => !v);
+      setShowModal((v) => !v);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -64,7 +66,9 @@ export function App() {
       setShowModal(true);
       pauseMusic();
     };
-    const onVisibility = () => { if (document.hidden) pause(); };
+    const onVisibility = () => {
+      if (document.hidden) pause();
+    };
 
     window.addEventListener('blur', pause);
     document.addEventListener('visibilitychange', onVisibility);
@@ -96,15 +100,17 @@ export function App() {
   const paused = phase === 'playing' && showModal;
 
   return (
-    <div style={{
-      width:           ARENA.WIDTH,
-      height:          ARENA.HEIGHT,
-      position:        'relative',
-      transform:       `scale(${scale})`,
-      transformOrigin: 'center center',
-      background:      CSS.BG,
-      overflow:        'hidden',
-    }}>
+    <div
+      style={{
+        width: ARENA.WIDTH,
+        height: ARENA.HEIGHT,
+        position: 'relative',
+        transform: `scale(${scale})`,
+        transformOrigin: 'center center',
+        background: CSS.BG,
+        overflow: 'hidden',
+      }}
+    >
       <GameCanvas gameLoop={gameLoop} onRunEnd={handleRunEnd} paused={paused} />
 
       {phase === 'playing' && (
@@ -117,43 +123,65 @@ export function App() {
         <UpgradeTree endInfo={endInfo} onPlayAgain={handlePlayAgain} />
       )}
 
-      {paused && (
-        <PauseModal isIntro={isFirstLaunch} onResume={handleResume} />
-      )}
+      {paused && <PauseModal isIntro={isFirstLaunch} onResume={handleResume} />}
 
       {showResetNote && (
         <div
           onClick={() => setShowResetNote(false)}
           style={{
-            position:       'absolute',
-            inset:          0,
-            display:        'flex',
-            alignItems:     'center',
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
             backdropFilter: 'blur(6px)',
-            background:     'rgba(238,216,199,0.72)',
-            zIndex:         200,
-            cursor:         'pointer',
+            background: 'rgba(238,216,199,0.72)',
+            zIndex: 200,
+            cursor: 'pointer',
           }}
         >
-          <div style={{
-            fontFamily:   'monospace',
-            textAlign:    'center',
-            color:        CSS.TEXT,
-            padding:      '32px 44px',
-            background:   CSS.BG,
-            borderRadius: 18,
-            boxShadow:    '0 8px 48px rgba(38,70,83,0.22)',
-            maxWidth:     380,
-          }}>
-            <div style={{ fontSize: 11, letterSpacing: 4, opacity: 0.4, marginBottom: 14 }}>
+          <div
+            style={{
+              fontFamily: 'monospace',
+              textAlign: 'center',
+              color: CSS.TEXT,
+              padding: '32px 44px',
+              background: CSS.BG,
+              borderRadius: 18,
+              boxShadow: '0 8px 48px rgba(38,70,83,0.22)',
+              maxWidth: 380,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                letterSpacing: 4,
+                opacity: 0.4,
+                marginBottom: 14,
+              }}
+            >
               NOTICE
             </div>
-            <div style={{ fontSize: 15, fontWeight: 'bold', letterSpacing: 1, marginBottom: 16 }}>
+            <div
+              style={{
+                fontSize: 15,
+                fontWeight: 'bold',
+                letterSpacing: 1,
+                marginBottom: 16,
+              }}
+            >
               Save data reset
             </div>
-            <div style={{ fontSize: 13, opacity: 0.6, lineHeight: 1.7, marginBottom: 24 }}>
-              Your progress has been cleared as part of an update during playtesting. Thanks for playing — your feedback helps!
+            <div
+              style={{
+                fontSize: 13,
+                opacity: 0.6,
+                lineHeight: 1.7,
+                marginBottom: 24,
+              }}
+            >
+              Your progress has been cleared as part of an update during
+              playtesting. Thanks for playing — your feedback helps!
             </div>
             <div style={{ fontSize: 11, letterSpacing: 2, opacity: 0.35 }}>
               CLICK TO CONTINUE
@@ -163,17 +191,19 @@ export function App() {
       )}
 
       {soundLocked && !paused && (
-        <div style={{
-          position:      'absolute',
-          bottom:        20,
-          left:          '50%',
-          transform:     'translateX(-50%)',
-          fontSize:      11,
-          letterSpacing: 2,
-          color:         CSS.TEXT,
-          opacity:       0.38,
-          pointerEvents: 'none',
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: 11,
+            letterSpacing: 2,
+            color: CSS.TEXT,
+            opacity: 0.38,
+            pointerEvents: 'none',
+          }}
+        >
           CLICK FOR SOUND
         </div>
       )}

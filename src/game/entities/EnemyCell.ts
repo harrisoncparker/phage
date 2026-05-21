@@ -1,4 +1,4 @@
-import { COLORS, ENEMY, ARENA } from '../../constants';
+import { ARENA, COLORS, ENEMY } from '../../constants';
 import { SFX } from '../Sound';
 
 export type EnemyType = 'oblivious' | 'aware' | 'ranged' | 'armoured';
@@ -12,16 +12,16 @@ const EDGE_MARGIN = 20;
 
 const CFG = {
   oblivious: ENEMY.OBLIVIOUS,
-  aware:     ENEMY.AWARE,
-  ranged:    ENEMY.RANGED,
-  armoured:  ENEMY.ARMOURED,
+  aware: ENEMY.AWARE,
+  ranged: ENEMY.RANGED,
+  armoured: ENEMY.ARMOURED,
 } as const;
 
 const COLOR_MAP: Record<EnemyType, number> = {
   oblivious: COLORS.OBLIVIOUS,
-  aware:     COLORS.AWARE,
-  ranged:    COLORS.RANGED,
-  armoured:  COLORS.ARMOURED,
+  aware: COLORS.AWARE,
+  ranged: COLORS.RANGED,
+  armoured: COLORS.ARMOURED,
 };
 
 export class EnemyCell {
@@ -38,8 +38,8 @@ export class EnemyCell {
   private vy = 0;
   private wanderTimer = 0;
   private fireCooldown: number;
-  private _inRange    = false;
-  private _activated  = false;
+  private _inRange = false;
+  private _activated = false;
   private _hitFlashTimer = 0;
 
   // Fade-in on spawn
@@ -67,8 +67,12 @@ export class EnemyCell {
     return 1 - this.fireCooldown / ENEMY.RANGED.FIRE_COOLDOWN;
   }
 
-  get inDetectionRange(): boolean { return this._inRange; }
-  get isActivated(): boolean      { return this._activated; }
+  get inDetectionRange(): boolean {
+    return this._inRange;
+  }
+  get isActivated(): boolean {
+    return this._activated;
+  }
 
   activate(): void {
     if (this._activated) return;
@@ -77,8 +81,12 @@ export class EnemyCell {
     SFX.enemyAlert();
   }
 
-  get hitFlashAlpha(): number { return this._hitFlashTimer / 80; }
-  get hpFraction(): number    { return Math.max(0, this.hp / CFG[this.type].HP); }
+  get hitFlashAlpha(): number {
+    return this._hitFlashTimer / 80;
+  }
+  get hpFraction(): number {
+    return Math.max(0, this.hp / CFG[this.type].HP);
+  }
 
   update(delta: number, px: number, py: number): EnemyEvent {
     // Fade in
@@ -87,30 +95,40 @@ export class EnemyCell {
       this.alpha = 1 - this.fadeTimer / 400;
     }
 
-    if (this._hitFlashTimer > 0) this._hitFlashTimer = Math.max(0, this._hitFlashTimer - delta);
+    if (this._hitFlashTimer > 0)
+      this._hitFlashTimer = Math.max(0, this._hitFlashTimer - delta);
 
     const dt = delta / 1000;
     let event: EnemyEvent = null;
 
     switch (this.type) {
-      case 'oblivious': this.wander(dt, ENEMY.OBLIVIOUS.SPEED); break;
-      case 'aware':     event = this.updateAware(dt, px, py); break;
-      case 'ranged':    event = this.updateRanged(delta, dt, px, py); break;
-      case 'armoured':  this.wander(dt, ENEMY.ARMOURED.SPEED); break;
+      case 'oblivious':
+        this.wander(dt, ENEMY.OBLIVIOUS.SPEED);
+        break;
+      case 'aware':
+        event = this.updateAware(dt, px, py);
+        break;
+      case 'ranged':
+        event = this.updateRanged(delta, dt, px, py);
+        break;
+      case 'armoured':
+        this.wander(dt, ENEMY.ARMOURED.SPEED);
+        break;
     }
 
     if (!this.active) return event;
     // Activated aware cells escape through walls — don't clamp them
     if (!(this.type === 'aware' && this._activated)) {
       const m = this.radius + EDGE_MARGIN;
-      this.x = Math.max(m, Math.min(ARENA.WIDTH  - m, this.x));
+      this.x = Math.max(m, Math.min(ARENA.WIDTH - m, this.x));
       this.y = Math.max(m, Math.min(ARENA.HEIGHT - m, this.y));
     }
     return event;
   }
 
   private updateAware(dt: number, px: number, py: number): EnemyEvent {
-    const dx = this.x - px, dy = this.y - py;
+    const dx = this.x - px,
+      dy = this.y - py;
     const dist = Math.hypot(dx, dy);
 
     this._inRange = dist < ENEMY.AWARE.DETECTION_RADIUS;
@@ -126,22 +144,34 @@ export class EnemyCell {
       this.wander(dt, ENEMY.AWARE.SPEED * 0.4);
     }
 
-    if (this.alertPulse > 0) this.alertPulse = Math.max(0, this.alertPulse - dt * 2.5);
+    if (this.alertPulse > 0)
+      this.alertPulse = Math.max(0, this.alertPulse - dt * 2.5);
 
-    if (this.x <= 0 || this.x >= ARENA.WIDTH || this.y <= 0 || this.y >= ARENA.HEIGHT) {
+    if (
+      this.x <= 0 ||
+      this.x >= ARENA.WIDTH ||
+      this.y <= 0 ||
+      this.y >= ARENA.HEIGHT
+    ) {
       this.active = false;
       return { type: 'escape' };
     }
     return null;
   }
 
-  private updateRanged(delta: number, dt: number, px: number, py: number): EnemyEvent {
-    const dx = px - this.x, dy = py - this.y;
+  private updateRanged(
+    delta: number,
+    dt: number,
+    px: number,
+    py: number,
+  ): EnemyEvent {
+    const dx = px - this.x,
+      dy = py - this.y;
     const dist = Math.hypot(dx, dy);
     let event: EnemyEvent = null;
 
     if (dist < ENEMY.RANGED.DETECTION_RADIUS) {
-      this._inRange   = true;
+      this._inRange = true;
       this._activated = true;
     } else {
       this._inRange = false;
@@ -175,7 +205,7 @@ export class EnemyCell {
 
     const m = this.radius + EDGE_MARGIN;
     if (this.x < m && this.vx < 0) this.vx = Math.abs(this.vx);
-    if (this.x > ARENA.WIDTH  - m && this.vx > 0) this.vx = -Math.abs(this.vx);
+    if (this.x > ARENA.WIDTH - m && this.vx > 0) this.vx = -Math.abs(this.vx);
     if (this.y < m && this.vy < 0) this.vy = Math.abs(this.vy);
     if (this.y > ARENA.HEIGHT - m && this.vy > 0) this.vy = -Math.abs(this.vy);
 
