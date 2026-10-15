@@ -28,7 +28,7 @@ export const CSS = {
 } as const;
 
 // Tip-jar link shown in the intro + pause menus. Empty string hides the button.
-export const SUPPORT_URL = '';
+export const SUPPORT_URL = 'https://ko-fi.com/harrisoncparker';
 
 export const ARENA = {
   WIDTH: 1200,

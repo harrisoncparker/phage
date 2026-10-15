@@ -30,4 +30,4 @@ Each run you harvest nutrients. Between runs you spend them on a sprawling upgra
 
 Progress saves automatically in your browser.
 
-If you enjoy it, a tip helps a lot and keeps updates coming. ♥
+If you enjoy it, a tip helps a lot and keeps updates coming: https://ko-fi.com/harrisoncparker ♥
