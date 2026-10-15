@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "build:itch": "tsc && vite build --base ./ --outDir dist-itch && cd dist-itch && rm -f ../phage-itch.zip && zip -qr ../phage-itch.zip .",
     "lint": "biome check .",
     "test": "vitest run --passWithNoTests"
   },

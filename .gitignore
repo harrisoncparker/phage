@@ -3,3 +3,5 @@ dist/
 docs/
 .DS_Store
 *.local
+dist-itch
+phage-itch.zip

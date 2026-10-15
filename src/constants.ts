@@ -27,6 +27,9 @@ export const CSS = {
   DIM: '#8c9e9e',
 } as const;
 
+// Tip-jar link shown in the intro + pause menus. Empty string hides the button.
+export const SUPPORT_URL = '';
+
 export const ARENA = {
   WIDTH: 1200,
   HEIGHT: 800,

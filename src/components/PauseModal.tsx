@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CSS } from '../constants';
+import { CSS, SUPPORT_URL } from '../constants';
 import { availablePoints, deleteSave, saveState } from '../state';
 
 interface Props {
@@ -69,6 +69,31 @@ function ResumeButton({
     >
       {label}
     </div>
+  );
+}
+
+function SupportLink() {
+  if (!SUPPORT_URL) return null;
+  return (
+    <a
+      href={SUPPORT_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'block',
+        textAlign: 'center',
+        marginTop: 14,
+        fontSize: 11,
+        letterSpacing: 1.5,
+        color: CSS.ACCENT,
+        opacity: 0.7,
+        textDecoration: 'none',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+    >
+      ♥ SUPPORT PHAGE
+    </a>
   );
 }
 
@@ -282,6 +307,7 @@ function IntroModal({ onResume }: { onResume: () => void }) {
         >
           SPACE TO START
         </div>
+        <SupportLink />
       </div>
     </div>
   );
@@ -353,6 +379,7 @@ function PauseMenuModal({ onResume }: { onResume: () => void }) {
         {tab === 'settings' && <SettingsTab />}
 
         <ResumeButton label="[ RESUME ]" onResume={onResume} />
+        <SupportLink />
       </div>
     </div>
   );
